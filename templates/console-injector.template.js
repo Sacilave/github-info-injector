@@ -11,18 +11,30 @@
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Helper: React 原生 value setter 穿透
+  // Helper: React 18+ 原生 value setter 与 _valueTracker 同步穿透
   const setNativeValue = (element, value) => {
-    const valueSetter = Object.getOwnPropertyDescriptor(element.__proto__, 'value')?.set ||
-                        Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set ||
-                        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-    if (valueSetter) {
-      valueSetter.call(element, value);
+    element.focus();
+    const prototype = Object.getPrototypeOf(element);
+    const prototypeSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set ||
+                         Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+
+    if (prototypeSetter) {
+      prototypeSetter.call(element, value);
+    } else if (nativeSetter) {
+      nativeSetter.call(element, value);
     } else {
       element.value = value;
     }
+
+    // 突破 React 内部 _valueTracker，通知虚拟 DOM 状态变更
+    if (element._valueTracker) {
+      element._valueTracker.setValue('');
+    }
+
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
+    element.dispatchEvent(new Event('blur', { bubbles: true }));
   };
 
   // 1. 查找 Description 输入框 (支持 input 与 textarea)

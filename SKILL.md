@@ -93,12 +93,16 @@ Render the script using GitHub's Primer `<tag-input>` isolation logic to strictl
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const setNativeValue = (el, val) => {
-    const setter = Object.getOwnPropertyDescriptor(el.__proto__, 'value')?.set ||
+    el.focus();
+    const proto = Object.getPrototypeOf(el);
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set ||
                    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set ||
                    Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
     if (setter) setter.call(el, val); else el.value = val;
+    if (el._valueTracker) el._valueTracker.setValue('');
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('blur', { bubbles: true }));
   };
 
   // 1. Fill Description
