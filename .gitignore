@@ -1,0 +1,23 @@
+# Environment and sensitive credential files (CRITICAL SECURITY)
+*service-account*.json
+*indexer*.json
+*.secret.json
+.env
+.env*.local
+*.pem
+*.key
+credentials.json
+token.json
+
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Output
+dist/
+build/
