@@ -105,28 +105,30 @@ Render the script using GitHub's Primer `<tag-input>` isolation logic to strictl
     el.dispatchEvent(new Event('blur', { bubbles: true }));
   };
 
-  // 1. Fill Description
-  const descInput = document.querySelector('input[name="repo_description"]') ||
-                    document.querySelector('textarea[name="repo_description"]') ||
-                    document.querySelector('input#repo_description') ||
-                    document.querySelector('textarea#repo_description');
+  // 1. 永久可靠定位 Description (基于不变的 Placeholder 语义)
+  const descInput = document.querySelector('input[placeholder*="description" i]') ||
+                    document.querySelector('textarea[placeholder*="description" i]') ||
+                    Array.from(document.querySelectorAll('input[type="text"]')).find(i => 
+                      i.placeholder?.toLowerCase().includes('description') || 
+                      i.getAttribute('aria-label')?.toLowerCase().includes('description')
+                    );
   if (descInput) {
-    descInput.focus();
     setNativeValue(descInput, DESCRIPTION);
+    descInput.style.outline = '2px solid #2da44e';
     console.log('✅ Description filled.');
   }
 
-  // 2. Fill Topics (strictly isolate from descInput)
-  const findTopicInput = () => {
-    const list = ['tag-input input', 'auto-complete input', 'input[aria-label*="topic" i]', 'input[placeholder*="topic" i]', '.js-repo-topics-field'];
-    for (const s of list) {
-      const el = document.querySelector(s);
-      if (el && el !== descInput) return el;
-    }
-    return null;
-  };
+  // 2. 永久可靠定位 Topics (基于不变的 Add topics 语义)
+  const topicInput = document.querySelector('input[aria-label*="topics" i]') ||
+                     document.querySelector('input[placeholder*="topics" i]') ||
+                     Array.from(document.querySelectorAll('input[type="text"]')).find(i => 
+                       i !== descInput && (
+                         i.getAttribute('aria-label')?.toLowerCase().includes('topic') ||
+                         i.closest('label')?.innerText?.toLowerCase().includes('topic') ||
+                         i.closest('tag-input') !== null
+                       )
+                     );
 
-  const topicInput = findTopicInput();
   if (topicInput && Array.isArray(TOPICS)) {
     for (const t of TOPICS) {
       topicInput.focus();
@@ -135,6 +137,7 @@ Render the script using GitHub's Primer `<tag-input>` isolation logic to strictl
       topicInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
       await sleep(150);
     }
+    topicInput.style.outline = '2px solid #2da44e';
     console.log(`✅ ${TOPICS.length} topics added.`);
   }
 

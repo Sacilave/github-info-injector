@@ -37,41 +37,32 @@
     element.dispatchEvent(new Event('blur', { bubbles: true }));
   };
 
-  // 1. 查找 Description 输入框 (支持 input 与 textarea)
-  const descInput = document.querySelector('input[name="repo_description"]') ||
-                    document.querySelector('input#repo_description') ||
-                    document.querySelector('textarea[name="repo_description"]') ||
-                    document.querySelector('textarea#repo_description') ||
-                    document.querySelector('[aria-label*="description" i]');
+  // 1. 永久可靠定位 Description (基于不变的 Placeholder 语义)
+  const descInput = document.querySelector('input[placeholder*="description" i]') ||
+                    document.querySelector('textarea[placeholder*="description" i]') ||
+                    Array.from(document.querySelectorAll('input[type="text"]')).find(i => 
+                      i.placeholder?.toLowerCase().includes('description') || 
+                      i.getAttribute('aria-label')?.toLowerCase().includes('description')
+                    );
 
   if (descInput) {
-    descInput.focus();
     setNativeValue(descInput, DESCRIPTION);
+    descInput.style.outline = '2px solid #2da44e';
     console.log(`✅ [Description] 简介已成功填充 (${DESCRIPTION.length} 字符)`);
   } else {
-    console.warn('⚠️ [Description] 未找到简介输入框，请确保已打开 GitHub 的 Edit details 弹窗。');
+    console.warn('⚠️ [Description] 未找到简介输入框。');
   }
 
-  // 2. 精准查找 GitHub Topics 专用的 <tag-input> WebComponent 输入框
-  const findTopicInput = () => {
-    const selectors = [
-      'tag-input input',
-      'auto-complete[for*="topic"] input',
-      'auto-complete input',
-      'input[aria-label*="topic" i]',
-      'input[placeholder*="topic" i]',
-      '.js-repo-topics-field',
-      'input[name="repo_topics"]'
-    ];
-    for (const s of selectors) {
-      const el = document.querySelector(s);
-      // 绝对不能是 Description 框自身
-      if (el && el !== descInput) return el;
-    }
-    return null;
-  };
-
-  const topicInput = findTopicInput();
+  // 2. 永久可靠定位 Topics (基于不变的 Add topics 语义)
+  const topicInput = document.querySelector('input[aria-label*="topics" i]') ||
+                     document.querySelector('input[placeholder*="topics" i]') ||
+                     Array.from(document.querySelectorAll('input[type="text"]')).find(i => 
+                       i !== descInput && (
+                         i.getAttribute('aria-label')?.toLowerCase().includes('topic') ||
+                         i.closest('label')?.innerText?.toLowerCase().includes('topic') ||
+                         i.closest('tag-input') !== null
+                       )
+                     );
 
   if (topicInput && Array.isArray(TOPICS) && TOPICS.length > 0) {
     console.log(`📋 [Topics] 定位到专属标签输入框，准备逐个注入 ${TOPICS.length} 个标签...`);
@@ -83,9 +74,10 @@
       topicInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
       await sleep(150);
     }
+    topicInput.style.outline = '2px solid #2da44e';
     console.log(`✅ [Topics] 成功注入 ${TOPICS.length} 个独立标签！`);
   } else {
-    console.warn('⚠️ [Topics] 未能定位到独立的 Topics 输入框。请确认弹窗内 Topics 区域已完全展开。');
+    console.warn('⚠️ [Topics] 未能定位到独立的 Topics 输入框。');
   }
 
   console.log('\n🎉 [Done] 自动填充完成！请检查页面并点击绿色的「Save changes」保存即可。');
