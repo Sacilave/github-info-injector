@@ -9,12 +9,26 @@ argument-hint: "[optional-custom-focus]"
 license: MIT
 metadata:
   category: github
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # GitHub Info Injector (`github-info-injector`)
 
 Autonomous agent skill that analyzes the current repository, synthesizes high-density, search-optimized metadata conforming strictly to SEO (traditional Google/GitHub search) and GEO (Generative Engine Optimization for ChatGPT/Perplexity/AI Overviews), and generates a zero-effort browser console automation script to populate GitHub's About settings in seconds.
+
+---
+
+## 🌐 Language Adaptation & User Communication (CRITICAL)
+
+To ensure seamless global and bilingual experiences:
+1. **Target Artifacts (Generated Payload)**:
+   - Always formulate the repository `DESCRIPTION` and `TOPICS` strictly in **English** (for maximum global discoverability, indexation, and ecosystem standard).
+2. **Conversational Communication with User (Agent Output)**:
+   - **Always dynamically mirror the user's input language**:
+     - If the user talks to you in **Chinese**, explain the rationale, present the steps, and summarize results in **Chinese**.
+     - If the user talks to you in **English**, communicate in **English**.
+     - If the user talks to you in **Japanese**, communicate in **Japanese**.
+     - Never force English explanations onto a user who prompts in another language!
 
 ---
 
@@ -70,13 +84,14 @@ Synthesize:
 - `TOPICS`: Array of up to 20 precise kebab-case topics.
 
 ### Step 3: Emit Ready-to-Paste Browser Script
-Render the script using GitHub's React/Primer `nativeSetter` and asynchronous event dispatching:
+Render the script using GitHub's Primer `<tag-input>` isolation logic to strictly prevent Description input collision:
 
 ````javascript
 (async () => {
   const DESCRIPTION = "<GENERATED_DESCRIPTION>";
   const TOPICS = [<GENERATED_TOPICS>];
 
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const setNativeValue = (el, val) => {
     const setter = Object.getOwnPropertyDescriptor(el.__proto__, 'value')?.set ||
                    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set ||
@@ -85,28 +100,46 @@ Render the script using GitHub's React/Primer `nativeSetter` and asynchronous ev
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-  const desc = document.querySelector('input[name="repo_description"]') || document.querySelector('input#repo_description');
-  if (desc) { desc.focus(); setNativeValue(desc, DESCRIPTION); console.log('✅ Description filled.'); }
+  // 1. Fill Description
+  const descInput = document.querySelector('input[name="repo_description"]') ||
+                    document.querySelector('textarea[name="repo_description"]') ||
+                    document.querySelector('input#repo_description') ||
+                    document.querySelector('textarea#repo_description');
+  if (descInput) {
+    descInput.focus();
+    setNativeValue(descInput, DESCRIPTION);
+    console.log('✅ Description filled.');
+  }
 
-  const topicInput = document.querySelector('input[name="repo_topics"]') || document.querySelector('input#repo_topics') || document.activeElement;
+  // 2. Fill Topics (strictly isolate from descInput)
+  const findTopicInput = () => {
+    const list = ['tag-input input', 'auto-complete input', 'input[aria-label*="topic" i]', 'input[placeholder*="topic" i]', '.js-repo-topics-field'];
+    for (const s of list) {
+      const el = document.querySelector(s);
+      if (el && el !== descInput) return el;
+    }
+    return null;
+  };
+
+  const topicInput = findTopicInput();
   if (topicInput && Array.isArray(TOPICS)) {
     for (const t of TOPICS) {
       topicInput.focus();
       setNativeValue(topicInput, t);
       topicInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
       topicInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
-      await sleep(120);
+      await sleep(150);
     }
     console.log(`✅ ${TOPICS.length} topics added.`);
   }
+
   console.log('🎉 Done! Click "Save changes" in GitHub.');
 })();
 ````
 
 ### Step 4: Display Output to User
-Show the proposed Description and Topics clearly, followed by instructions:
+Show the proposed Description and Topics clearly, followed by instructions in the **user's prompt language**:
 1. Open the repo homepage on GitHub and click the ⚙️ icon next to **About**.
 2. Press `F12` to open DevTools Console.
 3. Paste the code block and press `Enter`.
